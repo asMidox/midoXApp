@@ -1,5 +1,7 @@
 import streamlit as st
 import numpy as np
+import matplotlib
+matplotlib.use('Agg')  # Set the backend before importing pyplot
 import matplotlib.pyplot as plt
 import pandas as pd
 import plotly.express as px
@@ -7,7 +9,9 @@ import plotly.graph_objects as go
 import yfinance as yf
 from datetime import datetime
 from scipy.stats import norm
-
+import json
+import requests
+from streamlit_lottie import st_lottie
 APP_ICON_URL = "https://bit.ly/42viGwA"
 st.set_page_config(page_icon=APP_ICON_URL)
 
@@ -59,12 +63,58 @@ custom_css = """
 
 st.markdown(custom_css, unsafe_allow_html=True)
 
+############################################################################################
 # Page d'accueil
 def home_page():   
     st.title("Bienvenue sur l'interface de simulation financière")
-    st.write("Sélectionnez une simulation dans le menu de gauche.")
+
+    def load_lottiefile(filepath: str):
+        with open(filepath, "r") as f:
+            return json.load(f)
+
+    def load_lottieurl(url: str):
+        r = requests.get(url)
+        if r.status_code != 200:
+            return None
+        return r.json()
+
+    lottie_gif= load_lottiefile(r"C:\Users\user\Downloads\gif.json")
+    lottie_hello = load_lottieurl("https://assets9.lottiefiles.com/packages/lf20_M9p23l.json")
+    st_lottie(
+        lottie_gif
+    )
+
+    st_lottie(
+        lottie_hello
+    )
+
+    
+    # Introduction au projet
+    st.write("""
+    Bienvenue sur notre interface de simulation financière, un projet développé dans le cadre de notre cours de calcul stochastique. 
+    Cette application vous offre la possibilité d'explorer et de comprendre le comportement des marchés financiers à travers des simulations interactives.
+
+    Notre objectif est de vous permettre d'évaluer divers scénarios financiers en utilisant des modèles stochastiques, tels que le Mouvement Brownien Standard et la Simulation de Monte Carlo.
+
+    Pour commencer, choisissez l'une des simulations dans le menu de gauche. Chaque simulation propose des paramètres spécifiques que vous pouvez ajuster selon vos préférences.
+
+    Profitez de votre expérience de simulation et n'hésitez pas à explorer les différentes facettes de la finance stochastique!
+    """)
+
+    # Instructions pour choisir une simulation
+    st.subheader("Comment commencer?")
+    st.write("""
+    - **Mouvement Brownien Standard :** Explorez la trajectoire aléatoire d'un actif financier avec des variations aléatoires.
+    - **Mouvement Brownien Géométrique :** Simulez le prix d'un actif financier en tenant compte de la volatilité et du taux de dérive.
+    - **Simulation de Monte Carlo :** Obtenez des perspectives sur le prix futur d'une action en utilisant des simulations stochastiques.
+
+    Choisissez une simulation dans le menu de gauche et découvrez comment les modèles stochastiques peuvent être utilisés pour mieux comprendre et anticiper les mouvements du marché financier.
+    """)
 
 
+
+
+############################################################################################
 # Page de simulation du Mouvement Brownien Standard
 def brownian_motion_page():
     st.title("Simulation du Mouvement Brownien Standard")
@@ -100,6 +150,10 @@ def brownian_motion_page():
             st.write("Volatilité (écart-type):", volatility)
             st.write(df)
 
+
+
+
+#######################################################################################
 # Page de simulation du Mouvement Brownien Géométrique
 def geometric_brownian_motion_page():
     st.title("Simulation du Mouvement Brownien Géométrique")
@@ -148,6 +202,8 @@ def geometric_brownian_motion_page():
         st.plotly_chart(fig)
 
 
+
+###########################################################################################
 # Page de simulation de Monte Carlo
 def monte_carlo_page():
     apply_style()
@@ -213,23 +269,66 @@ def monte_carlo_page():
 
 
 
-# Fonction pour calculer le prix de l'option européenne selon la formule de Black-Scholes
-def black_scholes_option_price(S, K, T, r, sigma, option_type='call'):
-    d1 = (np.log(S / K) + (r + 0.5 * sigma**2) * T) / (sigma * np.sqrt(T))
-    d2 = d1 - sigma * np.sqrt(T)
+
+#############################################################################################
+# Fonction pour calculer le prix de l'option européenne selon la formule de Monte Carlo
+def monte_carlo_option_price(S, K, T, r, sigma, option_type='call', num_simulations=10000):
+    dt = T / 252
+    num_steps = int(T / dt)
+    np.random.seed(42)
+
+    simulated_prices = np.zeros((num_simulations, num_steps + 1))
+    simulated_prices[:, 0] = S
+
+    for i in range(1, num_steps + 1):
+        Z = np.random.standard_normal(num_simulations)
+        simulated_prices[:, i] = simulated_prices[:, i - 1] * np.exp((r - 0.5 * sigma**2) * dt + sigma * np.sqrt(dt) * Z)
 
     if option_type == 'call':
-        option_price = S * norm.cdf(d1) - K * np.exp(-r * T) * norm.cdf(d2)
+        payoff = np.maximum(simulated_prices[:, -1] - K, 0)
     elif option_type == 'put':
-        option_price = K * np.exp(-r * T) * norm.cdf(-d2) - S * norm.cdf(-d1)
+        payoff = np.maximum(K - simulated_prices[:, -1], 0)
     else:
-        option_price = None
+        payoff = None
+
+    option_price = np.exp(-r * T) * np.mean(payoff)
 
     return option_price
+
+# Fonction pour simuler une trajectoire de prix
+def simulate_price_trajectory(S, r, sigma, T, num_simulations):
+    dt = T / 252
+    num_steps = int(T / dt)
+    np.random.seed(42)
+    simulated_prices = np.zeros((num_simulations, num_steps + 1))
+    simulated_prices[:, 0] = S
+
+    for i in range(1, num_steps + 1):
+        Z = np.random.standard_normal(num_simulations)
+        simulated_prices[:, i] = simulated_prices[:, i - 1] * np.exp((r - 0.5 * sigma**2) * dt + sigma * np.sqrt(dt) * Z)
+
+    # Création du graphe des simulations avec Plotly Express
+    fig = px.line(simulated_prices.T, labels={"value": "Stock Price", "index": "Steps"}, title="Simulated Price Trajectories")
+    
+    # Supprimer la légende pour éviter l'affichage d'un grand nombre de simulations
+    fig.update_layout(showlegend=False)
+
+    # Affichage du graphe dans Streamlit
+    st.plotly_chart(fig)
+
+    df_simulated_prices = pd.DataFrame(simulated_prices, columns=[f"Step {i}" for i in range(num_steps + 1)])
+    return df_simulated_prices
 
 # Page de simulation des options européennes
 def european_options_page():
     st.title("Simulation des Options Européennes")
+
+    # Introduction à la simulation des options européennes avec Monte Carlo
+    st.write("""
+    Les options européennes sont des contrats d'options qui peuvent être exercés uniquement à la date d'expiration. 
+    La méthode de Monte Carlo est une approche de simulation stochastique qui peut être utilisée pour estimer le prix 
+    d'une option en prenant en compte le comportement aléatoire du prix de l'actif sous-jacent.
+    """)
 
     # Paramètres de l'option
     st.subheader("Paramètres de l'option")
@@ -238,18 +337,30 @@ def european_options_page():
 
     underlying_price = st.number_input("Prix actuel de l'actif sous-jacent (S)", value=100.0, step=1.0)
     strike_price = st.number_input("Prix d'exercice de l'option (K)", value=100.0, step=1.0)
-    time_to_expiry = st.number_input("Durée jusqu'à l'expiration (en années)", value=1.0, step=0.1)
+    time_to_expiry = st.number_input("Durée jusqu'à l'expiration (en jours)", value=30, step=1)
     interest_rate = st.number_input("Taux d'intérêt annuel (r)", value=0.05, step=0.01)
     volatility = st.number_input("Volatilité annuelle (σ)", value=0.2, step=0.01)
 
-    # Action pour calculer le prix de l'option
-    if st.button("Calculer le prix de l'option"):
-        # Calcul du prix de l'option
-        option_price = black_scholes_option_price(underlying_price, strike_price, time_to_expiry, interest_rate, volatility, option_type.lower())
+    # Nombre de simulations
+    num_simulations = st.number_input("Nombre de simulations", value=10000, step=1000)
+
+    # Action pour calculer le prix de l'option par Monte Carlo
+    if st.button("Calculer le prix de l'option par Monte Carlo"):
+        # Calcul du prix de l'option avec Monte Carlo
+        option_price = monte_carlo_option_price(underlying_price, strike_price, time_to_expiry, interest_rate, volatility, option_type.lower(), num_simulations)
 
         # Affichage du résultat
-        st.subheader("Résultat de la simulation")
+        st.subheader("Résultat de la simulation Monte Carlo")
         st.write(f"Prix de l'option {option_type} : {option_price:.4f}")
+
+        # Ajout d'un exemple de trajectoire de prix simulée avec Plotly Express
+        st.subheader("Exemple de trajectoire de prix simulée")
+        simulate_price_trajectory(underlying_price, interest_rate, volatility, time_to_expiry, num_simulations)
+
+
+
+
+
 
 # Sélecteur de page
 page_selector = st.sidebar.radio("Sélectionnez une simulation", ["Accueil", "Mouvement Brownien Standard", "Mouvement Brownien Géométrique", "Monte Carlo", "Options Européennes"])
