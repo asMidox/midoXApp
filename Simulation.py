@@ -12,6 +12,8 @@ from scipy.stats import norm
 import json
 import requests
 from streamlit_lottie import st_lottie
+from streamlit_option_menu import option_menu
+from streamlit_extras.metric_cards import style_metric_cards
 APP_ICON_URL = "https://bit.ly/42viGwA"
 st.set_page_config(page_icon=APP_ICON_URL)
 
@@ -66,11 +68,23 @@ st.markdown(custom_css, unsafe_allow_html=True)
 ############################################################################################
 # Page d'accueil
 def home_page():   
-    st.title("Bienvenue sur l'interface de simulation financière")
+    
+    with st.expander("click"):
+       st.write("""
+        Bienvenue sur notre interface de simulation financière, un projet développé dans le cadre de notre cours de calcul stochastique. 
+        Cette application vous offre la possibilité d'explorer et de comprendre le comportement des marchés financiers à travers des simulations interactives.
 
-    def load_lottiefile(filepath: str):
-        with open(filepath, "r") as f:
-            return json.load(f)
+        Notre objectif est de vous permettre d'évaluer divers scénarios financiers en utilisant des modèles stochastiques, tels que le Mouvement Brownien Standard et la Simulation de Monte Carlo.
+
+        Pour commencer, choisissez l'une des simulations dans le menu de gauche. Chaque simulation propose des paramètres spécifiques que vous pouvez ajuster selon vos préférences.
+
+        Profitez de votre expérience de simulation et n'hésitez pas à explorer les différentes facettes de la finance stochastique!
+        """)
+       
+
+    #def load_lottiefile(filepath: str):
+    #    with open(filepath, "r") as f:
+    #       return json.load(f)
 
     def load_lottieurl(url: str):
         r = requests.get(url)
@@ -78,28 +92,21 @@ def home_page():
             return None
         return r.json()
 
-    lottie_gif= load_lottiefile(r"C:\Users\user\Downloads\gif.json")
+    #lottie_gif= load_lottiefile(r"C:\Users\user\Downloads\gif.json")
     lottie_hello = load_lottieurl("https://assets9.lottiefiles.com/packages/lf20_M9p23l.json")
-    st_lottie(
-        lottie_gif
-    )
+    #st_lottie(
+    #    lottie_gif
+    #)
 
     st_lottie(
         lottie_hello
     )
+    st.title("Bienvenue sur l'interface de simulation financière")
+
 
     
     # Introduction au projet
-    st.write("""
-    Bienvenue sur notre interface de simulation financière, un projet développé dans le cadre de notre cours de calcul stochastique. 
-    Cette application vous offre la possibilité d'explorer et de comprendre le comportement des marchés financiers à travers des simulations interactives.
-
-    Notre objectif est de vous permettre d'évaluer divers scénarios financiers en utilisant des modèles stochastiques, tels que le Mouvement Brownien Standard et la Simulation de Monte Carlo.
-
-    Pour commencer, choisissez l'une des simulations dans le menu de gauche. Chaque simulation propose des paramètres spécifiques que vous pouvez ajuster selon vos préférences.
-
-    Profitez de votre expérience de simulation et n'hésitez pas à explorer les différentes facettes de la finance stochastique!
-    """)
+    
 
     # Instructions pour choisir une simulation
     st.subheader("Comment commencer?")
@@ -125,6 +132,20 @@ def brownian_motion_page():
 
         # Action pour lancer la simulation
     if st.button("Lancer la simulation"):
+            
+            total3, total4,  = st.columns(2)
+
+            with total4:
+                st.info('Durée ', icon="⌛")
+                st.metric(label="Durée de la simulation", value=f"{duration} jrs")
+
+            with total3:
+                st.info('Volatilité', icon="💣")
+                st.metric(label="Volatilité", value=f"{volatility:.2f}")
+
+            # Style pour les cartes métriques
+            style_metric_cards(background_color="#FFFFFF", border_left_color="#686664", border_color="#000000",box_shadow="#F71938")
+
             # Génération du Mouvement Brownien Standard
             dt = 1  # Pas de temps
             num_steps = int(duration / dt)
@@ -167,6 +188,31 @@ def geometric_brownian_motion_page():
 
     # Action pour lancer la simulation
     if st.button("Lancer la simulation"):
+        total1, total2, total3, total4, total5 = st.columns(5)
+
+        with total1:
+            st.info('prix intial', icon="💰")
+            st.metric(label="Prix initial", value=f"{initial_price:,.2f}")
+
+        with total2:
+            st.info('dérive', icon="🔰")
+            st.metric(label="Taux de dérive", value=f"{drift_rate:.2f}")
+
+        with total3:
+            st.info('Volatilité', icon="💣")
+            st.metric(label="Volatilité", value=f"{volatility:.2f}")
+
+        with total4:
+            st.info('Durée ', icon="⌛")
+            st.metric(label="Durée de la simulation", value=f"{duration} jrs")
+
+        with total5:
+            st.info('Nombre', icon="🔢")
+            st.metric(label="Nombre de simulations", value=f"{num_simulations}")
+
+        # Style pour les cartes métriques
+        style_metric_cards(background_color="#FFFFFF", border_left_color="#686664", border_color="#000000",box_shadow="#F71938")
+
         # Génération des Mouvements Browniens Géométriques
         dt = 1  # Pas de temps
         num_steps = int(duration / dt)
@@ -220,6 +266,24 @@ def monte_carlo_page():
 
     # Bouton pour lancer la simulation
     if st.button("Lancer la simulation", key="simulate_button"):
+        total1, total2, total5 = st.columns(3)
+
+        with total1:
+            st.info('ticker', icon="💰")
+            st.metric(label="ticker", value=f"{ticker:}")
+
+        with total2:
+            st.info('Début', icon="🔰")
+            st.metric(label="Début", value=f"{start_date:}")
+
+        with total5:
+            st.info('Nombre', icon="🔢")
+            st.metric(label="Nombre de simulations", value=f"{num_simulations}")
+
+        # Style pour les cartes métriques
+        style_metric_cards(background_color="#FFFFFF", border_left_color="#686664", border_color="#000000",box_shadow="#F71938")
+
+
         # Récupération des données historiques de l'action
         try:
             stock_data = yf.download(ticker, start=start_date)
@@ -322,30 +386,71 @@ def simulate_price_trajectory(S, r, sigma, T, num_simulations):
 # Page de simulation des options européennes
 def european_options_page():
     st.title("Simulation des Options Européennes")
+    with st.expander("click"):
+       st.write("""
+        Les options européennes sont des contrats d'options qui peuvent être exercés uniquement à la date d'expiration. 
+        La méthode de Monte Carlo est une approche de simulation stochastique qui peut être utilisée pour estimer le prix 
+        d'une option en prenant en compte le comportement aléatoire du prix de l'actif sous-jacent.
+        """)
 
-    # Introduction à la simulation des options européennes avec Monte Carlo
-    st.write("""
-    Les options européennes sont des contrats d'options qui peuvent être exercés uniquement à la date d'expiration. 
-    La méthode de Monte Carlo est une approche de simulation stochastique qui peut être utilisée pour estimer le prix 
-    d'une option en prenant en compte le comportement aléatoire du prix de l'actif sous-jacent.
-    """)
 
     # Paramètres de l'option
-    st.subheader("Paramètres de l'option")
-    option_type = st.radio("Type d'option", ["Call", "Put"])
-    st.write(f"Type d'option sélectionné : {option_type}")
+    # Create two columns for better layout
+    col1, col2 = st.columns(2)
 
-    underlying_price = st.number_input("Prix actuel de l'actif sous-jacent (S)", value=100.0, step=1.0)
-    strike_price = st.number_input("Prix d'exercice de l'option (K)", value=100.0, step=1.0)
-    time_to_expiry = st.number_input("Durée jusqu'à l'expiration (en jours)", value=30, step=1)
-    interest_rate = st.number_input("Taux d'intérêt annuel (r)", value=0.05, step=0.01)
-    volatility = st.number_input("Volatilité annuelle (σ)", value=0.2, step=0.01)
+    with col1:
+        option_type = st.radio("Type d'option", ["Call", "Put"], key="option_type")
+        underlying_price = st.number_input("Prix actuel de l'actif sous-jacent (S)", value=100.0, step=1.0, key="underlying_price")
+        strike_price = st.number_input("Prix d'exercice de l'option (K)", value=100.0, step=1.0, key="strike_price")
+        
+    with col2:
+        interest_rate = st.number_input("Taux d'intérêt annuel (r)", value=0.05, step=0.01, key="interest_rate")
+        volatility = st.number_input("Volatilité annuelle (σ)", value=0.2, step=0.01, key="volatility")
+        num_simulations = st.number_input("Nombre de simulations", value=10000, step=1000, key="num_simulations")
+
 
     # Nombre de simulations
-    num_simulations = st.number_input("Nombre de simulations", value=10000, step=1000)
+    time_to_expiry = st.slider("Durée jusqu'à l'expiration (en jours)", 1, 365, 30)
+    #st.slider("Durée de la simulation (jours)", 1, 365, 30)
 
     # Action pour calculer le prix de l'option par Monte Carlo
     if st.button("Calculer le prix de l'option par Monte Carlo"):
+        total1, total2,total3,total4= st.columns(4)
+        
+        with total1:
+            st.info("Type d'option", icon="💰")
+            st.metric(label="Type d'option", value=f"{option_type:}")
+
+        with total2:
+            st.info('Prix actuel', icon="🔰")
+            st.metric(label="S", value=f"{underlying_price:}")
+
+        with total3:
+            st.info("Prix d'exercice ", icon="🔢")
+            st.metric(label="K", value=f"{strike_price}")
+
+        with total4:
+            st.info("Taux d'intérêt ", icon="💰")
+            st.metric(label="r", value=f"{interest_rate:}")
+        
+        total5,total6,total7 = st.columns(3)
+        
+        with total5:
+            st.info('Volatilité annuelle', icon="🔰")
+            st.metric(label="σ", value=f"{volatility:}")
+        
+        with total6:
+            st.info("Echéance", icon="🔢")
+            st.metric(label="T", value=f"{time_to_expiry:}jrs")
+
+        with total7:
+            st.info('Nombre de simulations', icon="🔢")
+            st.metric(label="Nombre de simulations", value=f"{num_simulations}")
+        
+        # Style pour les cartes métriques
+        style_metric_cards(background_color="#FFFFFF", border_left_color="#686664", border_color="#000000",box_shadow="#F71938")
+
+
         # Calcul du prix de l'option avec Monte Carlo
         option_price = monte_carlo_option_price(underlying_price, strike_price, time_to_expiry, interest_rate, volatility, option_type.lower(), num_simulations)
 
@@ -363,9 +468,21 @@ def european_options_page():
 
 
 # Sélecteur de page
-page_selector = st.sidebar.radio("Sélectionnez une simulation", ["Accueil", "Mouvement Brownien Standard", "Mouvement Brownien Géométrique", "Monte Carlo", "Options Européennes"])
+#page_selector = st.sidebar.radio("Sélectionnez une simulation", ["Accueil", "Mouvement Brownien Standard", "Mouvement Brownien Géométrique", "Monte Carlo", "Options Européennes"])
 
-# Affichage de la page sélectionnée
+def sideBar():
+    with st.sidebar:
+        selected = option_menu(
+            menu_title="Main Menu",
+            options=["Accueil", "Mouvement Brownien Standard", "Mouvement Brownien Géométrique", "Monte Carlo", "Options Européennes"],
+            icons=["house","","","",""],
+            menu_icon="cast",
+            default_index=0
+        )
+    return selected
+
+page_selector = sideBar()
+
 if page_selector == "Accueil":
     home_page()
 elif page_selector == "Mouvement Brownien Standard":
@@ -376,3 +493,4 @@ elif page_selector == "Monte Carlo":
     monte_carlo_page()
 elif page_selector == "Options Européennes":
     european_options_page()
+
